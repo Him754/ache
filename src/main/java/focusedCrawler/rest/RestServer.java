@@ -103,7 +103,8 @@ public class RestServer {
         server.post("/crawls/:crawler_id/labels",     json(labelsResource.addLabels));
         server.get( "/crawls/:crawler_id/_search",    elasticsearchProxyResource.searchApi);
         server.post("/crawls/:crawler_id/_search",    elasticsearchProxyResource.searchApi);
-
+        server.post("/crawls/:crawler_id/link_filter",   json(crawlerResource.addurl));
+            
         /*
          * Thread management routes
          */

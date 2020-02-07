@@ -1,5 +1,6 @@
 package focusedCrawler.rest.resources;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,16 +12,31 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import focusedCrawler.Main;
 import focusedCrawler.crawler.CrawlersManager;
 import focusedCrawler.crawler.CrawlersManager.CrawlContext;
 import focusedCrawler.crawler.CrawlersManager.CrawlType;
 import focusedCrawler.crawler.async.AsyncCrawler;
+import focusedCrawler.crawler.async.RobotsTxtHandler;
 import focusedCrawler.crawler.cookies.Cookie;
 import focusedCrawler.util.MetricsManager;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.annotation.concurrent.Immutable;
 import spark.Request;
 import spark.Route;
 
@@ -32,15 +48,57 @@ public class CrawlerResource {
     private final static ObjectMapper json = new ObjectMapper();
 
     private CrawlersManager crawlersManager;
-
+    private static final ObjectMapper mapper = new ObjectMapper();
+    private Map<String, Map<String, Boolean>> crawlersLabelsCache = new HashMap<>();
+    private URI configPath;
     public CrawlerResource(CrawlersManager crawlManager) {
         crawlersManager = crawlManager;
     }
+    
+    public Route addurl = (request, response) -> {
+          try {
+            String crawlerId = request.params(":crawler_id");
+            CrawlContext context = crawlersManager.getCrawl(crawlerId);          
+            System.out.print(request.body());
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode jsonNode = mapper.readTree(request.body());
+            String yaml = new YAMLMapper().writeValueAsString(jsonNode);
+            String path;
+            String directory;
+            if (context == null) {
+                response.status(HttpServletResponse.SC_NOT_FOUND);
+            return ImmutableMap.of("message", "Crawler not found for crawler_id " + crawlerId);
+            }
+               path = context.seedPath;
+               File f = new File(path);
+               directory = f.getParent();
+               String link_filters_path = directory + File.separator + "link_filters.yaml";
+               System.out.println(link_filters_path);
+               File link_filter_file = new File(link_filters_path);
+               link_filter_file.delete();
+           //create new file with content 
+               link_filter_file.createNewFile();
+            
+                      
+            FileWriter myWriter = new FileWriter(link_filters_path);
+            myWriter.write(yaml);
+            myWriter.close();
+            System.out.println("Successfully wrote to the file.");
+               return ImmutableMap.of("output", yaml);
+            
+            } catch (Exception e) {
+                logger.error("failed.", e);
+                response.status(HttpServletResponse.SC_NOT_ACCEPTABLE);
+                System.out.println("hello");
+                return ImmutableMap.of("message", false);
 
+            }
+          };
+          
     public Route getStatus = (request, response) -> {
 
         String crawlerId = request.params(":crawler_id");
-
+    
         CrawlContext context = crawlersManager.getCrawl(crawlerId);
         if (context == null) {
             response.status(HttpServletResponse.SC_NOT_FOUND);
@@ -49,15 +107,15 @@ public class CrawlerResource {
 
         return context;
     };
-
+    
     public Route listCrawlers = (request, response) -> {
         Map<String, CrawlContext> crawlers = crawlersManager.getCrawls();
         return ImmutableMap.of("crawlers", crawlers.values());
     };
-
+    
     public Route metricsResource = (request, response) -> {
         String crawlerId = request.params(":crawler_id");
-
+        
         CrawlContext context = crawlersManager.getCrawl(crawlerId);
         if (context == null) {
             response.status(HttpServletResponse.SC_NOT_FOUND);
@@ -89,7 +147,7 @@ public class CrawlerResource {
                 "crawlerStarted", false);
         }
     };
-
+    
     public Route stopCrawl = (request, response) -> {
         try {
             String crawlerId = request.params(":crawler_id");
@@ -129,12 +187,12 @@ public class CrawlerResource {
                 "crawlerStopped", false);
         }
     };
-
+    
     public Route addSeeds = (request, response) -> {
         try {
             String crawlerId = request.params(":crawler_id");
 
-            CrawlContext context = crawlersManager.getCrawl(crawlerId);
+            CrawlContext context = crawlersManager.getCrawl(crawlerId);          
             if (context == null) {
                 response.status(HttpServletResponse.SC_NOT_FOUND);
                 return ImmutableMap.of(
@@ -165,10 +223,10 @@ public class CrawlerResource {
                 "addedSeeds", false);
         }
     };
-
-    public Route addCookies = (request, response) -> {
+  
+           public Route addCookies = (request, response) -> {
         String crawlerId = request.params(":crawler_id");
-
+        
         CrawlContext context = crawlersManager.getCrawl(crawlerId);
         if (context == null) {
             response.status(HttpServletResponse.SC_NOT_FOUND);
@@ -215,13 +273,17 @@ public class CrawlerResource {
     public static class StartCrawlParams {
         public CrawlType crawlType;
         public List<String> seeds;
-        public byte[] model;
+        String str = null;
+        public byte[] model = str.getBytes();
         public String esTypeName;
         public String esIndexName;
     }
 
     public static class AddSeedsParams {
         public List<String> seeds;
+    }
+    public static class AddurlParams {
+        public List<String> yaml;
     }
     
 
