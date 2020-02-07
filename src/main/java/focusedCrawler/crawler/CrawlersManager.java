@@ -61,16 +61,16 @@ public class CrawlersManager {
     public CrawlContext getCrawl(String crawlerId) {
         return crawlers.get(crawlerId);
     }
-
+    
     public Map<String, CrawlContext> getCrawls() {
         return ImmutableMap.copyOf(crawlers);
     }
-
+  
     public CrawlContext createCrawler(String crawlerId, StartCrawlParams params) throws Exception {
         return createCrawler(crawlerId, params.crawlType, params.seeds, params.model,
                 params.esIndexName, params.esTypeName);
     }
-
+   
     public CrawlContext createCrawler(String crawlerId, CrawlType crawlType,
             List<String> seeds, byte[] model) throws Exception {
         return createCrawler(crawlerId, crawlType, seeds, model, null, null);
@@ -130,7 +130,7 @@ public class CrawlersManager {
             configStream.close();
         }
     }
-
+    
     private URL getConfigForCrawlType(CrawlType crawlType) {
         String fileName;
         switch (crawlType) {
@@ -168,7 +168,7 @@ public class CrawlersManager {
         try (PrintStream fileWriter = new PrintStream(seedFilePath)) {
             if (seeds != null && !seeds.isEmpty()) {
                 for (String seed : seeds) {
-                    fileWriter.println(seed);
+                    fileWriter.println(seed);   
                 }
             }
         }
@@ -239,7 +239,7 @@ public class CrawlersManager {
         public String seedPath;
         @JsonIgnore
         public String modelPath;
-
+ 
         @JsonIgnore
         public AsyncCrawler getCrawler() {
             return this.crawler;
@@ -279,5 +279,4 @@ public class CrawlersManager {
     public enum CrawlType {
         DeepCrawl, FocusedCrawl
     }
-
 }
