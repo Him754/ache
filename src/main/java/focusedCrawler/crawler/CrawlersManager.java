@@ -68,7 +68,8 @@ public class CrawlersManager {
   
     public CrawlContext createCrawler(String crawlerId, StartCrawlParams params) throws Exception {
         return createCrawler(crawlerId, params.crawlType, params.seeds, params.model,
-                params.esIndexName, params.esTypeName);
+                params.esIndexName, params.esTypeName)
+                ;
     }
    
     public CrawlContext createCrawler(String crawlerId, CrawlType crawlType,
@@ -81,11 +82,13 @@ public class CrawlersManager {
             throws Exception {
 
         Path configPath = Paths.get(baseDataPath, crawlerId, "config");
+        System.out.println(configPath.getFileName());
+        //System.out.println(configPath.getFileName());
         createConfigForCrawlType(baseConfig, configPath, crawlType, esIndexName, esTypeName);
 
         String modelPath = storeModelFile(model, configPath.resolve("model"));
         String seedPath = getSeedForCrawlType(crawlType, seeds, configPath, modelPath);
-
+        
         return createCrawler(crawlerId, configPath.toString(), seedPath, modelPath, esIndexName,
                 esTypeName);
     }
